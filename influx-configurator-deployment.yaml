@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yml
+    kompose.version: 1.26.1 (a9d05d509)
+  labels:
+    io.kompose.service: influx-configurator
+  name: influx-configurator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: influx-configurator
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f docker-compose.yml
+        kompose.version: 1.26.1 (a9d05d509)
+      labels:
+        io.kompose.service: influx-configurator
+    spec:
+      containers:
+        - args:
+            - sh
+            - -c
+            - 'apt-get update && pip install --upgrade pip && apt-get install make automake gcc g++ subversion python3-dev &&       pip install pandas influxdb-client openstf-dbc && cd /opt/influxdb-configurator/ && python load_data_to_influx.py '
+          image: python:3.9
+          name: openstf-influx-configurator
+          resources: {}
+          volumeMounts:
+            - mountPath: /opt/influxdb-configurator
+              name: influx-configurator-claim0
+      restartPolicy: Always
+      volumes:
+        - name: influx-configurator-claim0
+          persistentVolumeClaim:
+            claimName: influx-configurator-claim0
+status: {}
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    io.kompose.service: influx-configurator-claim0
+  name: influx-configurator-claim0
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+  volumeName: tekton-pv    
+status: {}
